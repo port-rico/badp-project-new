@@ -4,43 +4,23 @@ import plotly.express as px
 import folium
 from streamlit_folium import st_folium
 
-@st.cache_data(show_spinner="Mengunduh data dari Google Drive...")
+@st.cache_data(show_spinner="Mengunduh dataset dari HuggingFace...")
 def load_data():
     try:
-        # File ID dari link Google Drive
-        file_id = "1TwVNlif_zHnvAimlAwwjrFf4C3MsmtrG"
+        url = "https://huggingface.co/datasets/port-rico/badp-project/resolve/main/main_data.csv"
+        df = pd.read_csv(url)
         
-        # Direct download link Google Drive
-        url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        
-        # Coba download file
-        response = requests.get(url)
-        
-        # Jika Google Drive memberikan halaman konfirmasi (file besar)
-        if "html" in response.headers.get("Content-Type", ""):
-            # Cari token konfirmasi
-            import re
-            match = re.search(r"confirm=([0-9A-Za-z_]+)", response.text)
-            if match:
-                confirm_token = match.group(1)
-                url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm={confirm_token}"
-                response = requests.get(url)
-        
-        # Jika gagal
-        if response.status_code != 200:
-            st.error("❌ Gagal mengunduh file dari Google Drive. Pastikan link dapat diakses publik.")
-            return None
-        
-        # Convert ke CSV buffer
-        csv_data = StringIO(response.text)
-        
-        # Load ke dataframe
-        df = pd.read_csv(csv_data)
+        # Validasi minimal (kolom penting harus ada)
+        required_cols = ["order_purchase_timestamp", "product_category_name", "item_revenue"]
+        for col in required_cols:
+            if col not in df.columns:
+                st.error(f"❌ Kolom '{col}' tidak ditemukan dalam dataset.")
+                return None
         
         return df
 
     except Exception as e:
-        st.error(f"❌ Terjadi error saat memuat data: {e}")
+        st.error(f"❌ Gagal memuat dataset HuggingFace: {e}")
         return None
 
 df = load_data()
@@ -226,4 +206,5 @@ folium.Choropleth(
 ).add_to(m)
 
 st_folium(m, width=700, height=450)
+
 
